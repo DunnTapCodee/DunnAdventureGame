@@ -5,12 +5,17 @@
 #include <vector>
 #include "graphics.h"
 #include "GameObject.h"
+#include "MainCharacter.h"
+
+
+
 
 class Game {
 public:
     Graphics graphics;
     SDL_Texture* background;
-    std::vector<GameObject*> objects; // Danh sách vật thể
+    std::vector<GameObject*> objects;
+    MainCharacter* dunn = nullptr;
 
     Game() {
         graphics.init();
@@ -28,26 +33,51 @@ public:
     void addObject(GameObject* obj) {
         objects.push_back(obj);
     }
-
+    void addMainCharacter(MainCharacter* Player)
+      {
+          dunn = Player;
+      }
     void update(SDL_Event& event) {
+        if (!dunn) return;
+
         if (event.type == SDL_KEYDOWN) {
-            for (auto obj : objects) { // Lặp qua tất cả vật thể
                 switch (event.key.keysym.sym) {
-                    case SDLK_a: obj->move(-1, 0); break;
-                    case SDLK_d: obj->move(1, 0); break;
-                    case SDLK_w: obj->move(0, -1); break;
-                    case SDLK_s: obj->move(0, 1); break;
+                    case SDLK_a:
+                       {
+                        if ( dunn ->isJumping == false)
+                          {
+                              dunn ->moveLeft();
+                          }
+                        break;
+                       }
+                    case SDLK_d:
+                       {
+                        if ( dunn ->isJumping == false)
+                            {
+                                dunn ->moveRight();
+                            }
+                        break;
+                       }
+                    case SDLK_SPACE:
+                       {
+                           const Uint8 *keystate = SDL_GetKeyboardState(NULL);
+                           bool moveleft = keystate[SDL_SCANCODE_A];
+                           bool moveright = keystate[SDL_SCANCODE_D];
+                           dunn ->jump (moveleft, moveright);
+                           break;
+                       } 
                 }
-            }
         }
     }
 
     void render() {
         SDL_RenderClear(graphics.renderer);
-        SDL_RenderCopy(graphics.renderer, background, NULL, NULL); // Vẽ background
+        SDL_RenderCopy(graphics.renderer, background, NULL, NULL);
         for (auto obj : objects) {
-            obj->render(graphics); // Vẽ tất cả vật thể
+            obj->render(graphics);
         }
+
+        if (dunn) dunn ->render(graphics);
         graphics.presentScene();
     }
 };

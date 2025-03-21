@@ -76,7 +76,7 @@ struct Graphics
       }
   }
 
-  void rectangle (SDL_Renderer* renderer, int x, int y, int w, int h)
+    void rectangle (SDL_Renderer* renderer, int x, int y, int w, int h)
     {
        SDL_Rect rect;
        rect.x = x;
@@ -87,7 +87,7 @@ struct Graphics
        SDL_RenderFillRect(renderer, &rect);
     }
   
-  void circle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
+    void circle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
     int x = 0, y = radius;
     int d = 1 - radius; // Giá trị quyết định 
     SDL_SetRenderDrawColor(renderer, 60, 70, 30, 40);
