@@ -18,14 +18,12 @@ public:
         : x(startX), y(startY), velocityX(0), velocityY(0),isJumping(false) {
         texture = graphics.loadTexture(filePath, graphics.renderer);
     }
-
+    
     ~GameObject() {
         SDL_DestroyTexture(texture);
     }
 
-    void render(Graphics& graphics) {
-        graphics.renderTexture(texture, x, y, graphics.renderer, 0.1f);
-    }
+   
 };
 
 #endif

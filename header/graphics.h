@@ -8,8 +8,10 @@
 
 struct Graphics
 {
-    SDL_Renderer* renderer;
-    SDL_Window* window;
+    SDL_Renderer* renderer = nullptr;
+    SDL_Window* window = nullptr;
+    SDL_Texture* background = nullptr;
+
 
     void LogErrorAndExit(const char* msg, const char* error)
     {
@@ -111,48 +113,28 @@ struct Graphics
     }
 }
 
-    void clearScr(SDL_Renderer* renderer)
-     {
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0 , 255);
-        SDL_RenderClear(renderer);
-     }
 
-    void renderTexture (SDL_Texture* texture, int x, int y, SDL_Renderer* renderer,  float scale = 0.01f)
-    {
-    
-      SDL_Rect dest;
+    void renderTexture(SDL_Texture* texture, int x, int y, int width, int height)
+       {
+            SDL_Rect dest = {x, y, width, height};
+            SDL_RenderCopy(renderer, texture, NULL, &dest);
+       }
 
-      dest.x = x;
-      dest.y = y;
-      SDL_QueryTexture(texture, NULL, NULL, &dest.w, &dest.h);
-      dest.w = static_cast<int>(dest.w * scale);
-      dest.h = static_cast<int>(dest.h * scale);
-      
-
-      SDL_RenderCopy(renderer, texture, NULL, &dest);
-
-      // SDL_Log("Texture size - Width: %d, Height: %d", dest.w, dest.h);
-
-    }
-
-    void blitRect(SDL_Texture *texture, SDL_Rect *src, int x, int y)
-    {
-        SDL_Rect dest;
-
-        dest.x = x;
-        dest.y = y;
-        dest.w = src->w;
-        dest.h = src->h;
-
-        SDL_RenderCopy(renderer, texture, src, &dest);
-    }
-
+    void render(SDL_Texture* characterTexture, int char_x, int char_y, SDL_Texture* characterTexture2, int char_x2, int char_y2)
+       {
+          SDL_RenderClear(renderer);
+          SDL_RenderCopy(renderer, background, NULL, NULL);  // Vẽ background
+          renderTexture(characterTexture, char_x, char_y, 120, 120);  // Vẽ nhân vật chính với kích thước 40x60
+          renderTexture(characterTexture2, char_x2, char_y2, 120, 120);
+          SDL_RenderPresent(renderer);
+       }
     void quit()
     {
         IMG_Quit();
 
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
+        SDL_DestroyTexture(background);
         SDL_Quit();
     }
 };

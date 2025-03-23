@@ -6,19 +6,19 @@
 
 const int JUMP_STRENGTH = -4;
 const int GRAVIRY = 1;
-const int GROUND_LEVEL = 300;
+const int GROUND_LEVEL = 400;
 
 class MainCharacter 
 {
     public:
     int x, y;
-    int velocityX, velocityY;
-    bool isJumping;
+    int current_speed = 0;
+    bool is_jumping = false;
 
     SDL_Texture* texture;
 
     MainCharacter (const char* filePath, Graphics& graphics, int startX, int startY)
-     : x(startX), y(startY), velocityX(0), velocityY(0), isJumping (false)
+     : x(startX), y(startY), is_jumping (false)
         {
                 texture = graphics.loadTexture(filePath, graphics.renderer);
         }
@@ -28,44 +28,49 @@ class MainCharacter
             SDL_DestroyTexture(texture);
       }
 
-      void moveLeft() { velocityX = -SPEED; }
-      void moveRight() { velocityX = SPEED; }
-      void stop() { velocityX = 0; }
+   void jump(int speed) {
+      if (is_touching_ground()) { // Chỉ cho phép nhảy khi đang đứng trên mặt đất
+          current_speed = speed;
+          is_jumping = true;
+      }
+  }
+  
+  void animation() {
+      if (is_jumping) {
+          y -= current_speed;
+          current_speed -= GRAVITATIONAL_ACCELERATION; // Trừ lực hấp dẫn dần
+          if (current_speed <= 0) {
+              is_jumping = false; // Khi tốc độ nhảy hết, rơi xuống
+          }
+      } else {
+          int next_y = y - current_speed;
+          if (next_y + 10 >= GROUND_LEVEL) { // Chạm đất
+              y = GROUND_LEVEL - 10;
+              current_speed = 0;
+          } else {
+              current_speed -= GRAVITATIONAL_ACCELERATION;
+              y = next_y;
+          }
+      }
+  }
+  
+  bool is_touching_ground() {
+      return (y + 10 >= GROUND_LEVEL);
+  }
+  
+   void move_left()
+     {
+        x = x - MOVE_SPEED;
+     }
+   void move_right()
+     {
+         x = x + MOVE_SPEED;
+     }
 
-      void jump(bool moveleft, bool moveright)
-        {
-            if ( isJumping == false)
-               {
-                 velocityY = JUMP_STRENGTH;
-                 isJumping = true;
-                if (moveleft == true)
-                   {
-                      velocityX = -2;
-                   }
-                else if (moveright == true )
-                   {
-                      velocityX = 2;
-                   }
-               }
-
-        }
-
-      void applyPhysics()
-        {
-            y = y + velocityY;
-            x = x + velocityX;
-            velocityY = velocityY + GRAVIRY;
-
-            if ( y == GROUND_LEVEL)
-               {
-                    isJumping = false;
-               } 
-        }
-        
-    void render(Graphics& graphics)
-        {
-            graphics.renderTexture(texture, x, y, graphics.renderer, 0.1f);
-        }
+   void render(Graphics& graphics) {
+      graphics.renderTexture(texture, x, y, 120, 120);
+  }
+    
 };
 
 #endif
