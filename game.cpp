@@ -3,106 +3,129 @@
 #include "GameObject.h"
 #include "MainCharacter.h"
 #include "graphics.h"
-
-
+#include <vector>
+#include <cmath>
 
 using namespace std;
 
-void waitUntilKeyPressed() {
-    SDL_Event e;
-    while (true) {
-        if (SDL_PollEvent(&e) != 0 && (e.type == SDL_KEYDOWN || e.type == SDL_QUIT))
-            return;
-        SDL_Delay(100);
-    }   
+Graphics graphics;
+SDL_Event event;
+bool running = true;
+bool moving_left = false, moving_right = false, jumping = false;
+Uint32 lastMoveTime = SDL_GetTicks();
+
+MainCharacter* dunn;
+MainCharacter* kanie;
+GameObject* ball;
+vector<GameObject*> obj;
+
+
+// Hàm xử lý bắn bóng
+void ShootingBall(SDL_Event& event) {
+    if (event.type == SDL_MOUSEBUTTONDOWN) {
+        int mouseX, mouseY;
+        SDL_GetMouseState(&mouseX, &mouseY);
+
+        // Xuất phát từ vị trí của kanie
+        GameObject* newBall = new GameObject("media/kanie.png", graphics, kanie->x + 50, kanie->y + 20);
+        
+        // Đặt mục tiêu và tăng tốc độ lên 1.2 lần
+        newBall->setTarget(mouseX, mouseY, 1.2f);
+
+        obj.push_back(newBall);
+    }
 }
 
-int main(int argc, char* argv[]) {
-    Graphics graphics;
+// Hàm di chuyển nhân vật
+void Moving() {
+    clock_t start = clock();
+    dunn->animation();
+    kanie->animation();
+    // graphics.render(dunn->texture, dunn->x, dunn->y, kanie->texture, kanie->x, kanie->y);
 
-    // tạo nhân vật chính
-    
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT || 
+            (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) ||
+            (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN)) {
+            running = false;
+        } else {
+            ShootingBall(event);  // Xử lý bắn bóng khi chuột được nhấn
+            if (event.type == SDL_KEYDOWN) {
+                switch (event.key.keysym.sym) {
+                    case SDLK_a: moving_left = true; break;
+                    case SDLK_d: moving_right = true; break;
+                    case SDLK_SPACE: jumping = true; break;
+                    default: break;
+                }
+            } else if (event.type == SDL_KEYUP) {
+                switch (event.key.keysym.sym) {
+                    case SDLK_a: moving_left = false; break;
+                    case SDLK_d: moving_right = false; break;
+                    case SDLK_SPACE: jumping = false; break;
+                    default: break;
+                }
+            }
+        }
+    }
+
+    if (moving_left)  { dunn->move_left(); kanie->move_left(); }
+    if (moving_right) { dunn->move_right(); kanie->move_right(); }
+    if (jumping && dunn->is_touching_ground()) {
+        dunn->jump(JUMP_SPEED);
+        kanie->jump(JUMP_SPEED);
+    }
+
+    if (SDL_GetTicks() - lastMoveTime > 200) {
+        if (moving_left) kanie->move_left();
+        if (moving_right) kanie->move_right();
+        if (jumping && kanie->is_touching_ground()) kanie->jump(JUMP_SPEED);
+        lastMoveTime = SDL_GetTicks();
+    }
+
+    int used_time = clock() - start;
+    SDL_Delay(used_time > 16 ? 0 : 16 - used_time);
+}
+
+
+// Cập nhật vị trí bóng
+void UpdateBalls() {
+    for (auto it = obj.begin(); it != obj.end();) {
+        (*it)->update();
+
+        if ((*it)->reachedTarget) {
+            delete *it;
+            it = obj.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+// Main function
+int main(int argc, char* argv[]) {
     graphics.init();
-    
+
     SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
     graphics.background = background;
 
-    MainCharacter* dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
-    MainCharacter* kanie = new MainCharacter("media/kanie.png",graphics, 150, GROUND_LEVEL);
-    bool running = true;
-    SDL_Event event;
-    bool moving_left = 0, moving_right = 0, jumping = 0;
-    Uint32 lastMoveTime = SDL_GetTicks(); 
+    dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
+    kanie = new MainCharacter("media/kanie.png", graphics, 150, GROUND_LEVEL);
+    ball = new GameObject("media/kanie.png", graphics, 150, GROUND_LEVEL);
 
-    while (running) 
-       {
-            clock_t start = clock();
-            dunn ->animation();
-            kanie ->animation();
-            graphics.render(dunn->texture, dunn->x, dunn->y, kanie ->texture, kanie ->x, kanie ->y);
-    
-            while (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT || 
-                    (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) ||
-                    (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RETURN))
-                     {
-                            running = false;
-                     }    
-                else
-                     {
-                        if (event.type == SDL_KEYDOWN) {
-                            switch (event.key.keysym.sym) {
-                                case SDLK_a: { moving_left = 1; break; }
-                                case SDLK_d: { moving_right = 1; break; }
-                                case SDLK_SPACE: { jumping = 1; break; }
-                                default: break;
-                            }
-                        }
-                        else if (event.type == SDL_KEYUP) {
-                            switch (event.key.keysym.sym) {
-                                case SDLK_a: { moving_left = 0; break; }
-                                case SDLK_d: { moving_right = 0; break; }
-                                case SDLK_SPACE: { jumping = 0 ;break; }
-                                default: break;
-                            }
-                        }
-                     }
-            }
+    while (running) {
+        Moving();
+        UpdateBalls();
 
-        if (moving_left)
-           {
-                 dunn ->move_left();
-                 kanie ->move_left();
-           }
-        if (moving_right)
-           {
-                 dunn ->move_right();
-                 kanie ->move_right();
-           }
-        if (jumping)
-           {
-            // nếu chạm đất mới cho nhảy
-            if (dunn ->is_touching_ground() == true)
-               {
-                     dunn ->jump(JUMP_SPEED);
-                     kanie ->jump(JUMP_SPEED);
-               }
-            }
-            
-        if (SDL_GetTicks() - lastMoveTime > 200)
-            {
-                if (moving_left) kanie->move_left();
-                if (moving_right) kanie->move_right();
-                if (jumping && kanie->is_touching_ground()) kanie->jump(JUMP_SPEED);
-                lastMoveTime = SDL_GetTicks();  // Reset bộ đếm
-            }
-    
-
-        // cái này để delay đúng 16ms
-        int used_time = clock() - start;
-        SDL_Delay(used_time > 16 ? 0 : 16 - used_time);
+        graphics.prepareScene(graphics.background);
+        graphics.render(dunn->texture, dunn->x, dunn->y, kanie->texture, kanie->x, kanie->y);
+        for (auto& ball : obj) {
+            graphics.renderTexture(ball->texture, ball->x, ball->y, 80, 80);
         }
-    graphics.quit();
-
-    return 0;
+        graphics.presentScene();
+        
+        
     }
+
+    graphics.quit();
+    return 0;
+}

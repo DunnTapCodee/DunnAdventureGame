@@ -1,9 +1,10 @@
 #ifndef _GRAPHICS__H
 #define _GRAPHICS__H
-
+#include <vector>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include "defs.h"
+#include "GameObject.h"
 
 
 struct Graphics
@@ -120,14 +121,19 @@ struct Graphics
             SDL_RenderCopy(renderer, texture, NULL, &dest);
        }
 
-    void render(SDL_Texture* characterTexture, int char_x, int char_y, SDL_Texture* characterTexture2, int char_x2, int char_y2)
-       {
-          SDL_RenderClear(renderer);
-          SDL_RenderCopy(renderer, background, NULL, NULL);  // Vẽ background
-          renderTexture(characterTexture, char_x, char_y, 120, 120);  // Vẽ nhân vật chính với kích thước 40x60
-          renderTexture(characterTexture2, char_x2, char_y2, 120, 120);
-          SDL_RenderPresent(renderer);
-       }
+       void render(SDL_Texture* characterTexture, int char_x, int char_y, SDL_Texture* characterTexture2, int char_x2, int char_y2)
+            {
+                  SDL_RenderClear(renderer);
+                  SDL_RenderCopy(renderer, background, NULL, NULL); // Vẽ background
+
+                  // Vẽ nhân vật
+                  renderTexture(characterTexture, char_x, char_y, 120, 120);
+                  renderTexture(characterTexture2, char_x2, char_y2, 120, 120);
+                  // SDL_RenderPresent(renderer); // Chỉ gọi một lần cuối cùng
+            }
+        
+      
+
     void quit()
     {
         IMG_Quit();

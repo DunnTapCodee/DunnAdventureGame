@@ -5,8 +5,8 @@
 #include "graphics.h"
 
 const int JUMP_STRENGTH = -4;
-const int GRAVIRY = 1;
-const int GROUND_LEVEL = 400;
+const int GRAVITY = 1;
+constexpr int GROUND_LEVEL = 400;
 
 class MainCharacter 
 {
