@@ -11,28 +11,35 @@ using namespace std;
 Graphics graphics;
 SDL_Event event;
 bool running = true;
-bool moving_left = false, moving_right = false, jumping = false;
+bool moving_left = false, moving_right = false, jumping = false,
+     lastMovingLeft = false, lastMovingRight = false;
 Uint32 lastMoveTime = SDL_GetTicks();
 
 MainCharacter* dunn;
 MainCharacter* kanie;
 GameObject* ball;
 vector<GameObject*> obj;
-
+bool ball_shot = false; int mouseX, mouseY;
 
 // Hàm xử lý bắn bóng
 void ShootingBall(SDL_Event& event) {
     if (event.type == SDL_MOUSEBUTTONDOWN) {
-        int mouseX, mouseY;
+        ball_shot = true;   
+
         SDL_GetMouseState(&mouseX, &mouseY);
+    }   
 
-        // Xuất phát từ vị trí của kanie
-        GameObject* newBall = new GameObject("media/kanie.png", graphics, kanie->x + 50, kanie->y + 20);
+    if (ball_shot)
+        {
+            // Xuất phát từ vị trí của kanie
+            GameObject* newBall = new GameObject("media/kanie.png", graphics, kanie->x + 20 , kanie->y + 20);
         
-        // Đặt mục tiêu và tăng tốc độ lên 1.2 lần
-        newBall->setTarget(mouseX, mouseY, 1.2f);
+            // Đặt mục tiêu và tăng tốc độ lên 1.2 lần
+            newBall->setTarget(mouseX, mouseY, 1.2f);
 
-        obj.push_back(newBall);
+            obj.push_back(newBall);
+
+            ball_shot = false;
     }
 }
 
@@ -52,16 +59,16 @@ void Moving() {
             ShootingBall(event);  // Xử lý bắn bóng khi chuột được nhấn
             if (event.type == SDL_KEYDOWN) {
                 switch (event.key.keysym.sym) {
-                    case SDLK_a: moving_left = true; break;
+                    case SDLK_a: moving_left = true;  break;
                     case SDLK_d: moving_right = true; break;
                     case SDLK_SPACE: jumping = true; break;
                     default: break;
                 }
             } else if (event.type == SDL_KEYUP) {
                 switch (event.key.keysym.sym) {
-                    case SDLK_a: moving_left = false; break;
-                    case SDLK_d: moving_right = false; break;
-                    case SDLK_SPACE: jumping = false; break;
+                    case SDLK_a: moving_left = false; lastMovingLeft = true;  break;
+                    case SDLK_d: moving_right = false; lastMovingRight = true;break;
+                    case SDLK_SPACE: jumping = false;  break;
                     default: break;
                 }
             }
@@ -88,6 +95,7 @@ void Moving() {
 
 
 // Cập nhật vị trí bóng
+// Xóa bóng nếu reacedTarget
 void UpdateBalls() {
     for (auto it = obj.begin(); it != obj.end();) {
         (*it)->update();
@@ -111,21 +119,54 @@ int main(int argc, char* argv[]) {
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
     kanie = new MainCharacter("media/kanie.png", graphics, 150, GROUND_LEVEL);
     ball = new GameObject("media/kanie.png", graphics, 150, GROUND_LEVEL);
-
+    int width = 50;
+    int frames = 0;
+    int distance_moved = 0; // Biến đếm khoảng cách di chuyển
+    const int FRAME_CHANGE_DISTANCE = 30; 
+    dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
+    dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
     while (running) {
         Moving();
         UpdateBalls();
 
-        graphics.prepareScene(graphics.background);
-        graphics.render(dunn->texture, dunn->x, dunn->y, kanie->texture, kanie->x, kanie->y);
+        if (moving_left || moving_right) {
+            distance_moved += MOVE_SPEED; 
+            if (distance_moved >= FRAME_CHANGE_DISTANCE) {
+                frames = (frames + 1) % 4; 
+                distance_moved = 0; // Reset khoảng cách
+            }
+        }
+
+        if (moving_left &&  dunn->is_touching_ground())
+           {
+                width = 50;
+                dunn ->texture = dunn -> framesLeft[frames];
+           }
+        else if (moving_right && dunn->is_touching_ground())
+            {
+                width = 50;
+                dunn ->texture = dunn -> framesRight[frames];
+            }
+        else if (moving_right && !dunn->is_touching_ground() ) { dunn ->texture = dunn -> framesRight[4]; width = 100;}
+        else if (moving_left  && !dunn->is_touching_ground() ) {dunn ->texture = dunn -> framesLeft[4];width = 100; }
+        else if ( dunn -> is_touching_ground() )
+            {
+                width = 50;
+                if (lastMovingLeft == true) { dunn ->texture = dunn -> framesLeft[0];}
+                else if (lastMovingRight == true) { dunn ->texture = dunn -> framesRight[0]; }
+                lastMovingLeft = false;
+                lastMovingRight = false;
+            }
+        graphics.render(dunn->texture, dunn->x, dunn->y, width, kanie->texture, kanie->x, kanie->y);
         for (auto& ball : obj) {
             graphics.renderTexture(ball->texture, ball->x, ball->y, 80, 80);
         }
-        graphics.presentScene();
-        
-        
+        graphics.presentScene();  
     }
+
+    
 
     graphics.quit();
     return 0;
 }
+
