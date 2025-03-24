@@ -66,68 +66,21 @@ struct Graphics
         return texture;
       }
 
-    void DrawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
-      SDL_SetRenderDrawColor(renderer, 150, 100, 50, 130);
-      for (int w = 0; w < radius * 2; w++) {
-          for (int h = 0; h < radius * 2; h++) {
-              int dx = radius - w; // Khoảng cách x từ tâm
-              int dy = radius - h; // Khoảng cách y từ tâm
-              if ((dx * dx + dy * dy) <= (radius * radius)) {
-                  SDL_RenderDrawPoint(renderer, centerX + dx, centerY + dy);
-              }
-          }
-      }
-  }
-
-    void rectangle (SDL_Renderer* renderer, int x, int y, int w, int h)
-    {
-       SDL_Rect rect;
-       rect.x = x;
-       rect.y = y;
-       rect.w = w;
-       rect.h = h;
-       SDL_SetRenderDrawColor(renderer, 150, 100, 50, 130);
-       SDL_RenderFillRect(renderer, &rect);
-    }
-  
-    void circle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
-    int x = 0, y = radius;
-    int d = 1 - radius; // Giá trị quyết định 
-    SDL_SetRenderDrawColor(renderer, 60, 70, 30, 40);
-    while (x <= y) {
-        SDL_RenderDrawPoint(renderer, centerX + x, centerY + y);
-        SDL_RenderDrawPoint(renderer, centerX - x, centerY + y);
-        SDL_RenderDrawPoint(renderer, centerX + x, centerY - y);
-        SDL_RenderDrawPoint(renderer, centerX - x, centerY - y);
-        SDL_RenderDrawPoint(renderer, centerX + y, centerY + x);
-        SDL_RenderDrawPoint(renderer, centerX - y, centerY + x);
-        SDL_RenderDrawPoint(renderer, centerX + y, centerY - x);
-        SDL_RenderDrawPoint(renderer, centerX - y, centerY - x);
-
-        x++;
-        if (d < 0) {
-            d += 2 * x + 1;
-        } else {
-            y--;
-            d += 2 * (x - y) + 1;
-        }
-    }
-}
-
-
+    // vẽ vật thể (All Object)
     void renderTexture(SDL_Texture* texture, int x, int y, int width, int height)
        {
             SDL_Rect dest = {x, y, width, height};
             SDL_RenderCopy(renderer, texture, NULL, &dest);
        }
 
-       void render(SDL_Texture* characterTexture, int char_x, int char_y, SDL_Texture* characterTexture2, int char_x2, int char_y2)
+    // vẽ nhận vật chính và nhân vật phụ
+    void render(SDL_Texture* characterTexture, int char_x, int char_y, int width, SDL_Texture* characterTexture2, int char_x2, int char_y2)
             {
                   SDL_RenderClear(renderer);
                   SDL_RenderCopy(renderer, background, NULL, NULL); // Vẽ background
 
                   // Vẽ nhân vật
-                  renderTexture(characterTexture, char_x, char_y, 120, 120);
+                  renderTexture(characterTexture, char_x, char_y, width, 120);
                   renderTexture(characterTexture2, char_x2, char_y2, 120, 120);
                   // SDL_RenderPresent(renderer); // Chỉ gọi một lần cuối cùng
             }

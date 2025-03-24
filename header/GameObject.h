@@ -28,27 +28,31 @@ class GameObject {
             SDL_DestroyTexture(texture);
         }
     
-        void setTarget(float tx, float ty, float speedMultiplier = 1.0f) {
-            targetX = tx;
-            targetY = ty;
-            float dx = targetX - x;
-            float dy = targetY - y;
+        // sau khi nhận được vị ví mouse_event, set up đường đi, speed cho balls
+        void setTarget(float tx, float ty, float speedMultiplier = 1.2f) {
+            targetX = tx - 30;
+            targetY = ty - 30;
+            float dx = targetX - x ;
+            float dy = targetY - y ;
             float length = sqrt(dx * dx + dy * dy);
             speedX = (dx / length) * 5.0f * speedMultiplier;
             speedY = (dy / length) * 5.0f * speedMultiplier;
         }
     
+        // cập nhật trạng thái của ball đã tới vị trí target chưa
         void update() {
             if (!reachedTarget) {
                 x += speedX;
                 y += speedY;
     
-                if (fabs(x - targetX) < 5 && fabs(y - targetY) < 5) {
+                if (fabs(x - targetX) < 3 && fabs(y - targetY) < 3) {
                     reachedTarget = true;
                 }
+
             }
         }
     
 };
 
 #endif
+

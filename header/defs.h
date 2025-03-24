@@ -10,6 +10,6 @@ const char* WINDOW_TITLE = "Dunn Tap Code";
 
 #define MOVE_SPEED 5
 
-#define JUMP_SPEED 28
+#define JUMP_SPEED 40
 
 #endif
