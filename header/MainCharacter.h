@@ -98,7 +98,6 @@ class MainCharacter
       
    void move_right()
      {
-        if (x < SCREEN_WIDTH)
          x = x + MOVE_SPEED;
      }
 

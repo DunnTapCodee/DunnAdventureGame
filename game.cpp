@@ -16,7 +16,7 @@ bool moving_left = false, moving_right = false, jumping = false,
 Uint32 lastMoveTime = SDL_GetTicks();
 
 MainCharacter* dunn;
-MainCharacter* kanie;
+MainCharacter* ronaldo;
 GameObject* ball;
 vector<GameObject*> obj;
 bool ball_shot = false; int mouseX, mouseY;
@@ -32,7 +32,7 @@ void ShootingBall(SDL_Event& event) {
     if (ball_shot)
         {
             // Xuất phát từ vị trí của kanie
-            GameObject* newBall = new GameObject("media/kanie.png", graphics, kanie->x + 20 , kanie->y + 20);
+            GameObject* newBall = new GameObject("media/ball.png", graphics, ronaldo->x + 60 , ronaldo->y + 100);
         
             // Đặt mục tiêu và tăng tốc độ lên 1.2 lần
             newBall->setTarget(mouseX, mouseY, 1.2f);
@@ -47,7 +47,7 @@ void ShootingBall(SDL_Event& event) {
 void Moving() {
     clock_t start = clock();
     dunn->animation();
-    kanie->animation();
+    ronaldo->animation();
     // graphics.render(dunn->texture, dunn->x, dunn->y, kanie->texture, kanie->x, kanie->y);
 
     while (SDL_PollEvent(&event)) {
@@ -75,19 +75,18 @@ void Moving() {
         }
     }
 
-    if (moving_left)  { dunn->move_left(); kanie->move_left(); }
-    if (moving_right) { dunn->move_right(); kanie->move_right(); }
+    if (moving_left)  { dunn->move_left(); ronaldo->move_left(); }
+    if (moving_right) { dunn->move_right(); ronaldo->move_right(); }
     if (jumping && dunn->is_touching_ground()) {
         dunn->jump(JUMP_SPEED);
-        kanie->jump(JUMP_SPEED);
     }
 
-    if (SDL_GetTicks() - lastMoveTime > 200) {
-        if (moving_left) kanie->move_left();
-        if (moving_right) kanie->move_right();
-        if (jumping && kanie->is_touching_ground()) kanie->jump(JUMP_SPEED);
-        lastMoveTime = SDL_GetTicks();
-    }
+    // if (SDL_GetTicks() - lastMoveTime > 200) {
+    //     if (moving_left) ronaldo->move_left();
+    //     if (moving_right) ronaldo->move_right();
+    //     if (jumping && ronaldo->is_touching_ground()) ronaldo->jump(JUMP_SPEED);
+    //     lastMoveTime = SDL_GetTicks();
+    // }
 
     int used_time = clock() - start;
     SDL_Delay(used_time > 16 ? 0 : 16 - used_time);
@@ -117,18 +116,21 @@ int main(int argc, char* argv[]) {
     graphics.background = background;
 
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
-    kanie = new MainCharacter("media/kanie.png", graphics, 150, GROUND_LEVEL);
-    ball = new GameObject("media/kanie.png", graphics, 150, GROUND_LEVEL);
-    int width = 50;
-    int frames = 0;
-    int distance_moved = 0; // Biến đếm khoảng cách di chuyển
-    const int FRAME_CHANGE_DISTANCE = 30; 
     dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
     dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
+
+    ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
+    ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
+
+    int width = 50;
+    int frames = 0;
+    int distance_moved = 0; 
+    const int FRAME_CHANGE_DISTANCE = 40; 
+
     while (running) {
         Moving();
         UpdateBalls();
-
+        ronaldo -> y = GROUND_LEVEL + 30;
         if (moving_left || moving_right) {
             distance_moved += MOVE_SPEED; 
             if (distance_moved >= FRAME_CHANGE_DISTANCE) {
@@ -136,7 +138,7 @@ int main(int argc, char* argv[]) {
                 distance_moved = 0; // Reset khoảng cách
             }
         }
-
+    
         if (moving_left &&  dunn->is_touching_ground())
            {
                 width = 50;
@@ -157,9 +159,10 @@ int main(int argc, char* argv[]) {
                 lastMovingLeft = false;
                 lastMovingRight = false;
             }
-        graphics.render(dunn->texture, dunn->x, dunn->y, width, kanie->texture, kanie->x, kanie->y);
+
+        graphics.render(dunn->texture, dunn->x, dunn->y, width, ronaldo->texture, ronaldo->x, ronaldo->y);
         for (auto& ball : obj) {
-            graphics.renderTexture(ball->texture, ball->x, ball->y, 80, 80);
+            graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
         }
         graphics.presentScene();  
     }

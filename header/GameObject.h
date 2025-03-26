@@ -30,8 +30,8 @@ class GameObject {
     
         // sau khi nhận được vị ví mouse_event, set up đường đi, speed cho balls
         void setTarget(float tx, float ty, float speedMultiplier = 1.2f) {
-            targetX = tx - 30;
-            targetY = ty - 30;
+            targetX = tx - 10;
+            targetY = ty - 10;
             float dx = targetX - x ;
             float dy = targetY - y ;
             float length = sqrt(dx * dx + dy * dy);

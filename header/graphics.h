@@ -81,7 +81,7 @@ struct Graphics
 
                   // Vẽ nhân vật
                   renderTexture(characterTexture, char_x, char_y, width, 120);
-                  renderTexture(characterTexture2, char_x2, char_y2, 120, 120);
+                  renderTexture(characterTexture2, char_x2, char_y2, 80, 80);
                   // SDL_RenderPresent(renderer); // Chỉ gọi một lần cuối cùng
             }
         
