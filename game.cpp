@@ -1,8 +1,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+
 #include "GameObject.h"
 #include "MainCharacter.h"
 #include "graphics.h"
+#include "Monster.h"
+
 #include <vector>
 #include <cmath>
 
@@ -15,10 +18,13 @@ bool moving_left = false, moving_right = false, jumping = false,
      lastMovingLeft = false, lastMovingRight = false;
 Uint32 lastMoveTime = SDL_GetTicks();
 
-MainCharacter* dunn;
-MainCharacter* ronaldo;
-GameObject* ball;
-vector<GameObject*> obj;
+    MainCharacter* dunn;
+    MainCharacter* ronaldo;
+    GameObject* ball;
+
+    vector<GameObject*> obj;
+    vector<Monster* > mons;
+
 bool ball_shot = false; int mouseX, mouseY;
 
 // Hàm xử lý bắn bóng
@@ -40,6 +46,7 @@ void ShootingBall(SDL_Event& event) {
             obj.push_back(newBall);
 
             ball_shot = false;
+
     }
 }
 
@@ -48,7 +55,6 @@ void Moving() {
     clock_t start = clock();
     dunn->animation();
     ronaldo->animation();
-    // graphics.render(dunn->texture, dunn->x, dunn->y, kanie->texture, kanie->x, kanie->y);
 
     while (SDL_PollEvent(&event)) {
         if (event.type == SDL_QUIT || 
@@ -81,20 +87,12 @@ void Moving() {
         dunn->jump(JUMP_SPEED);
     }
 
-    // if (SDL_GetTicks() - lastMoveTime > 200) {
-    //     if (moving_left) ronaldo->move_left();
-    //     if (moving_right) ronaldo->move_right();
-    //     if (jumping && ronaldo->is_touching_ground()) ronaldo->jump(JUMP_SPEED);
-    //     lastMoveTime = SDL_GetTicks();
-    // }
-
     int used_time = clock() - start;
     SDL_Delay(used_time > 16 ? 0 : 16 - used_time);
 }
 
-
 // Cập nhật vị trí bóng
-// Xóa bóng nếu reacedTarget
+// Xóa bóng nếu reachedTarget
 void UpdateBalls() {
     for (auto it = obj.begin(); it != obj.end();) {
         (*it)->update();
@@ -108,11 +106,110 @@ void UpdateBalls() {
     }
 }
 
-// Main function
+//Hàm quản lý frames
+void HandleCharacterMovement(MainCharacter* dunn, bool moving_left, bool moving_right, bool &lastMovingLeft, bool &lastMovingRight, int& width)
+{
+    ronaldo->y = GROUND_LEVEL + 30;
+
+    static int frames = 0;
+    static int distance_moved = 0;
+    const int FRAME_CHANGE_DISTANCE = 40;
+
+    if (moving_left || moving_right) {
+        distance_moved += MOVE_SPEED;
+        if (distance_moved >= FRAME_CHANGE_DISTANCE) {
+            frames = (frames + 1) % 4;
+            distance_moved = 0;
+        }
+    }
+
+
+    if (moving_left && dunn->is_touching_ground()) { dunn->texture = dunn->framesLeft[frames]; width = 50;}
+    else if (moving_right && dunn->is_touching_ground()) { dunn->texture = dunn->framesRight[frames]; width = 50;} 
+    else if (moving_right && !dunn->is_touching_ground()) { dunn->texture = dunn->framesRight[4]; width = 100; }
+    else if (moving_left && !dunn->is_touching_ground()) { dunn->texture = dunn->framesLeft[4]; width = 100;}
+    else if (dunn->is_touching_ground())
+       {
+            width = 50;
+            if (lastMovingLeft) { dunn->texture = dunn->framesLeft[0];}
+            else if (lastMovingRight) { dunn->texture = dunn->framesRight[0]; }
+            lastMovingLeft = false;
+            lastMovingRight = false;
+       }   
+    graphics.render(dunn->texture, dunn->x, dunn->y, width, ronaldo->texture, ronaldo->x, ronaldo->y);
+    
+}
+
+void FirstMonster()
+   {
+        srand(time(nullptr));
+        int randomX = rand() % SCREEN_WIDTH - 100;
+        int randomY = rand() % 200 + 50;
+        int TargetX = rand() % SCREEN_WIDTH;
+        Monster* bat = new Monster("media/obj1.png", graphics, randomX , randomY);
+        mons.push_back(bat);
+        bat -> setTarget(TargetX);
+   }
+
+void UpdateMonster()
+   {
+    for (auto it = mons.begin(); it != mons.end();)
+    {
+        (*it)->update();
+        if ((*it)->reachedTarget == true)
+        {
+            int TargetX = rand() % SCREEN_WIDTH;
+            // printf("Monster reached target! New target: %d\n", TargetX);
+            (*it)->setTarget(TargetX);
+        }
+        
+        bool erased = false;
+        if ( abs( dunn->x - (*it)->x ) <= 40  && abs( dunn->y - (*it)->y ) <= 40 )
+           {
+                delete *it;
+                it = mons.erase(it);
+                erased = true;
+           }
+        for (auto itr = obj.begin(); itr != obj.end();)
+        {
+            if ( abs((*itr)->x - (*it)->x ) <= 20  && abs((*itr)->y - (*it)->y ) <= 20 )
+            {
+                delete *itr;
+                itr = obj.erase(itr);
+    
+                delete *it;
+                it = mons.erase(it);
+                erased = true;
+                break;
+            }
+            else
+            {
+                ++itr;
+            }
+        }
+    
+        if (!erased) ++it;
+    }
+    
+   }
+
+
+void freeMons( vector <Monster* > &mons)
+   {
+        for (auto& it : mons) delete it;
+        mons.clear();
+   } 
+
+void changeMap(){}
+
+
+
+
+   // Main function
 int main(int argc, char* argv[]) {
     graphics.init();
 
-    SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
+    SDL_Texture* background = graphics.loadTexture("media/background4.jpg", graphics.renderer);
     graphics.background = background;
 
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
@@ -122,52 +219,36 @@ int main(int argc, char* argv[]) {
     ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
     ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
 
-    int width = 50;
-    int frames = 0;
-    int distance_moved = 0; 
-    const int FRAME_CHANGE_DISTANCE = 40; 
 
+    int width = 50;
     while (running) {
         Moving();
         UpdateBalls();
-        ronaldo -> y = GROUND_LEVEL + 30;
-        if (moving_left || moving_right) {
-            distance_moved += MOVE_SPEED; 
-            if (distance_moved >= FRAME_CHANGE_DISTANCE) {
-                frames = (frames + 1) % 4; 
-                distance_moved = 0; // Reset khoảng cách
-            }
+        if ( mons.size() <= 3) {
+             FirstMonster();
         }
-    
-        if (moving_left &&  dunn->is_touching_ground())
-           {
-                width = 50;
-                dunn ->texture = dunn -> framesLeft[frames];
-           }
-        else if (moving_right && dunn->is_touching_ground())
-            {
-                width = 50;
-                dunn ->texture = dunn -> framesRight[frames];
-            }
-        else if (moving_right && !dunn->is_touching_ground() ) { dunn ->texture = dunn -> framesRight[4]; width = 100;}
-        else if (moving_left  && !dunn->is_touching_ground() ) {dunn ->texture = dunn -> framesLeft[4];width = 100; }
-        else if ( dunn -> is_touching_ground() )
-            {
-                width = 50;
-                if (lastMovingLeft == true) { dunn ->texture = dunn -> framesLeft[0];}
-                else if (lastMovingRight == true) { dunn ->texture = dunn -> framesRight[0]; }
-                lastMovingLeft = false;
-                lastMovingRight = false;
-            }
+        UpdateMonster();
 
-        graphics.render(dunn->texture, dunn->x, dunn->y, width, ronaldo->texture, ronaldo->x, ronaldo->y);
+        HandleCharacterMovement(dunn, moving_left, moving_right, lastMovingLeft, lastMovingRight, width);
+        
+        for (auto& mon : mons)
+            graphics.renderTexture(mon->texture, mon->x, mon->y, 40, 40);
+
         for (auto& ball : obj) {
             graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
         }
         graphics.presentScene();  
     }
 
+    for (auto& o : obj) delete o; obj.clear();
+
+    for (auto& m : mons) delete m; mons.clear();
+
+    delete dunn; dunn = nullptr;
+
+    delete ronaldo; ronaldo = nullptr;
     
+    delete ball; ball = nullptr;
 
     graphics.quit();
     return 0;

@@ -7,6 +7,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <cmath>
 
 
 
@@ -14,13 +15,13 @@ class Monster {
     public:
         int x, y;
         int targetX;
-        int speedX
+        int speedX = 2;
         bool reachedTarget = false;
         SDL_Texture* texture;
 
     
         Monster(const char* filePath, Graphics& graphics, float startX, float startY)
-            : x(startX), y(startY), targetX(startX), targetY(startY), speedX(10)
+            : x(startX), y(startY)
         {
             texture = graphics.loadTexture(filePath, graphics.renderer);
         }
@@ -30,19 +31,26 @@ class Monster {
         }
     
         // sau khi nhận được vị ví mouse_event, set up đường đi, speed cho balls
-        void setTarget( int current_X, int targetX)
+        void setTarget( int TargetX)
             {
-                std::srand(std::time(nullptr)); // Đặt seed theo thời gian hiện tại
-                int randomNumber = std::rand() % 100;
-                targetX = randomNumber;
+                targetX = TargetX;
+                reachedTarget = false;
             }
-    
+
         // cập nhật trạng thái của ball đã tới vị trí target chưa
         void update() {
             if (!reachedTarget) {
-                x += speedX;
-                if (abs(x - targetX) < 10) {  reachedTarget = true; }
-
+                int distance = abs(x - targetX);
+                int moveStep = std::min(speedX, distance); 
+        
+                if (x < targetX) x += moveStep;
+                else if (x > targetX) x -= moveStep;
+        
+        
+                if (distance < 10) {  
+                    reachedTarget = true;
+                    
+                }
             }
         }
     
