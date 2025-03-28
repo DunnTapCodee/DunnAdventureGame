@@ -18,10 +18,11 @@ class Monster {
         int speedX = 2;
         bool reachedTarget = false;
         SDL_Texture* texture;
-
+        Graphics& graphicsRef;
+        std::vector < SDL_Texture* > frames;
     
         Monster(const char* filePath, Graphics& graphics, float startX, float startY)
-            : x(startX), y(startY)
+            : x(startX), y(startY), graphicsRef(graphics)
         {
             texture = graphics.loadTexture(filePath, graphics.renderer);
         }
@@ -30,6 +31,15 @@ class Monster {
             SDL_DestroyTexture(texture);
         }
     
+        void loadFrame( std::vector <const char*> filePaths)
+        {
+              for (const char* path : filePaths)
+                 {
+                     SDL_Texture* texture = graphicsRef.loadTexture( path, graphicsRef.renderer);
+                     if (texture) frames.push_back(texture);
+                 }
+        }
+
         // sau khi nhận được vị ví mouse_event, set up đường đi, speed cho balls
         void setTarget( int TargetX)
             {

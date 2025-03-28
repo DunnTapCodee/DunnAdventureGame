@@ -9,6 +9,7 @@
 
 struct Graphics
 {
+  
     SDL_Renderer* renderer = nullptr;
     SDL_Window* window = nullptr;
     SDL_Texture* background = nullptr;

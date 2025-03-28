@@ -30,12 +30,14 @@ Uint32 lastMoveTime = SDL_GetTicks();
 
 void freeVector(vector<T*>& vec) {
     for (auto& ptr : vec) {
+        SDL_DestroyTexture(ptr->texture);
+        ptr->texture = nullptr;
         delete ptr;
     }
     vec.clear();
 }
 
-void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball ) {
+void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball, Monster* bat ) {
     freeVector(obj);
     freeVector(mons);
 
@@ -45,12 +47,14 @@ void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball ) {
     for (auto& texture : dunn->framesRight) SDL_DestroyTexture(texture);
     dunn->framesRight.clear();
 
-    for (auto& texture : dunn->Maps) SDL_DestroyTexture(texture);
-    dunn->Maps.clear();
+
+    for (auto& texture : bat->frames) SDL_DestroyTexture(texture);
+    bat->frames.clear();
 
     delete dunn; dunn = nullptr;
     delete ronaldo; ronaldo = nullptr;
     delete ball; ball = nullptr;
+
 }
 
 
@@ -169,6 +173,7 @@ void HandleCharacterMovement(MainCharacter* dunn, bool moving_left, bool moving_
     
 }
 
+
 void FirstMonster()
    {
         int randomX = rand() % SCREEN_WIDTH - 100;
@@ -197,6 +202,7 @@ void UpdateMonster()
                 delete *it;
                 it = mons.erase(it);
                 erased = true;
+                continue;   
            }
         for (auto itr = obj.begin(); itr != obj.end();)
         {
@@ -221,12 +227,6 @@ void UpdateMonster()
     
    }
 
-
-void freeMons( vector <Monster* > &mons)
-   {
-        for (auto& it : mons) delete it;
-        mons.clear();
-   } 
 
 void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
    {
@@ -259,10 +259,16 @@ int main(int argc, char* argv[]) {
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
     dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
     dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
-    dunn ->loadMaps( {"media/background.jpg","media/background2.jpg" "media/background3.jpg", "media/background4.jpg", "media/background5.jpg", "media/background6.jpg"});
+    dunn ->loadMaps( {"media/background.jpg","media/background2.jpg", "media/background3.jpg", "media/background4.jpg", "media/background5.jpg", "media/background6.jpg", "media/background7.jpg"});
+    
+    Monster* bat = new Monster("media/obj1.png", graphics, 100, 100);
+    bat ->loadFrame( { "media/obj1.png", "media/obj2.png", "media/obj3.png" } );
+    printf("Monster frames loaded: %lu\n", bat->frames.size());
+
     ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
     ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
-
+    int framesMons = 0, distance = 0;
+    int FRAME_CHANGE_DISTANCE_MONS = 40;
 
     int width = 50;
     while (running) {
@@ -270,21 +276,36 @@ int main(int argc, char* argv[]) {
         changeMap( dunn, ronaldo, change);
         if (change == true)
             {
-                int map = ( rand() % 6 );
+                // if (graphics.background) {
+                //     SDL_DestroyTexture(graphics.background);
+                //     graphics.background = nullptr;
+                // }
+                int map = ( rand() % 7 );
                 graphics.background = dunn ->Maps[map];
                 freeVector(obj); freeVector(mons);
                 graphics.prepareScene(graphics.background);
             }
-        UpdateBalls();
-        while ( mons.size() <= 3) {
-             FirstMonster();
-        }
+        
+            UpdateBalls();
+            while ( mons.size() <= 3) {
+                FirstMonster();
+            }
+
+
         UpdateMonster();
 
         HandleCharacterMovement(dunn, moving_left, moving_right, lastMovingLeft, lastMovingRight, width);
         
+
         for (auto& mon : mons)
-            graphics.renderTexture(mon->texture, mon->x, mon->y, 40, 40);
+        {
+            distance += 2;
+            if (distance >= FRAME_CHANGE_DISTANCE_MONS) { framesMons = (framesMons + 1) % 3; distance = 0; }
+        
+            // Kiểm tra tránh crash
+            if (!bat->frames.size()) { mon->texture = bat->frames[framesMons]; }
+            graphics.renderTexture(bat ->frames[framesMons], mon->x, mon->y, 40, 40);
+        }
 
         for (auto& ball : obj) {
             graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
@@ -292,7 +313,7 @@ int main(int argc, char* argv[]) {
         graphics.presentScene();  
     }
 
-    cleanUp(dunn, ronaldo, ball);
+    cleanUp(dunn, ronaldo, ball, bat);
 
     graphics.quit();
     return 0;
