@@ -16,11 +16,13 @@ class MainCharacter
     int x, y;
     int current_speed = 0;
     bool is_jumping = false;
+    bool overMapLeft = false, overMapRight = false;
     SDL_Texture* texture;
     Graphics& graphicsRef;
 
     std::vector < SDL_Texture* > framesRight;
     std::vector < SDL_Texture* > framesLeft;
+    std::vector < SDL_Texture* > Maps;
 
     MainCharacter (const char* filePath, Graphics& graphics, int startX, int startY)
      : x(startX), y(startY), is_jumping (false),  graphicsRef(graphics)
@@ -43,6 +45,15 @@ class MainCharacter
                  {
                      SDL_Texture* texture = graphicsRef.loadTexture( path, graphicsRef.renderer);
                      if (texture) framesRight.push_back(texture);
+                 }
+        }
+
+    void loadMaps( std::vector <const char*> filePaths)
+        {
+              for (const char* path : filePaths)
+                 {
+                     SDL_Texture* texture = graphicsRef.loadTexture( path, graphicsRef.renderer);
+                     if (texture) Maps.push_back(texture);
                  }
         }
 
@@ -92,13 +103,19 @@ class MainCharacter
   
    void move_left()
      {
-        if (x > 0)
         x = x - MOVE_SPEED;
+        if (x <= 50) {
+            overMapLeft = true;
+        }
      }
       
    void move_right()
      {
          x = x + MOVE_SPEED;
+         if (x >= SCREEN_WIDTH - 50)
+            {
+                overMapRight = true;
+            }
      }
 
 

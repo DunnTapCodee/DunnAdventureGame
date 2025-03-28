@@ -13,6 +13,7 @@ using namespace std;
 
 Graphics graphics;
 SDL_Event event;
+SDL_Texture* background;
 bool running = true;
 bool moving_left = false, moving_right = false, jumping = false,
      lastMovingLeft = false, lastMovingRight = false;
@@ -24,6 +25,34 @@ Uint32 lastMoveTime = SDL_GetTicks();
 
     vector<GameObject*> obj;
     vector<Monster* > mons;
+
+    template <typename T>
+
+void freeVector(vector<T*>& vec) {
+    for (auto& ptr : vec) {
+        delete ptr;
+    }
+    vec.clear();
+}
+
+void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball ) {
+    freeVector(obj);
+    freeVector(mons);
+
+    for (auto& texture : dunn->framesLeft) SDL_DestroyTexture(texture);
+    dunn->framesLeft.clear();
+
+    for (auto& texture : dunn->framesRight) SDL_DestroyTexture(texture);
+    dunn->framesRight.clear();
+
+    for (auto& texture : dunn->Maps) SDL_DestroyTexture(texture);
+    dunn->Maps.clear();
+
+    delete dunn; dunn = nullptr;
+    delete ronaldo; ronaldo = nullptr;
+    delete ball; ball = nullptr;
+}
+
 
 bool ball_shot = false; int mouseX, mouseY;
 
@@ -142,7 +171,6 @@ void HandleCharacterMovement(MainCharacter* dunn, bool moving_left, bool moving_
 
 void FirstMonster()
    {
-        srand(time(nullptr));
         int randomX = rand() % SCREEN_WIDTH - 100;
         int randomY = rand() % 200 + 50;
         int TargetX = rand() % SCREEN_WIDTH;
@@ -200,8 +228,24 @@ void freeMons( vector <Monster* > &mons)
         mons.clear();
    } 
 
-void changeMap(){}
+void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
+   {
+        if ( dunn->overMapLeft ) 
+           {
+                dunn -> x = SCREEN_WIDTH - 50 ;
+                ronaldo -> x = SCREEN_WIDTH + 50;
+                dunn -> overMapLeft = false;
+                change = true;
 
+           }
+        else if ( dunn->overMapRight ) 
+            {
+                dunn -> x = 0;
+                ronaldo -> x = 100;
+                dunn -> overMapRight = false;
+                change = true;
+            }
+   }
 
 
 
@@ -209,22 +253,30 @@ void changeMap(){}
 int main(int argc, char* argv[]) {
     graphics.init();
 
-    SDL_Texture* background = graphics.loadTexture("media/background4.jpg", graphics.renderer);
+    SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
     graphics.background = background;
 
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
     dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
     dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
-
+    dunn ->loadMaps( {"media/background.jpg","media/background2.jpg" "media/background3.jpg", "media/background4.jpg", "media/background5.jpg", "media/background6.jpg"});
     ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
     ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
 
 
     int width = 50;
     while (running) {
-        Moving();
+        Moving(); bool change = false;
+        changeMap( dunn, ronaldo, change);
+        if (change == true)
+            {
+                int map = ( rand() % 6 );
+                graphics.background = dunn ->Maps[map];
+                freeVector(obj); freeVector(mons);
+                graphics.prepareScene(graphics.background);
+            }
         UpdateBalls();
-        if ( mons.size() <= 3) {
+        while ( mons.size() <= 3) {
              FirstMonster();
         }
         UpdateMonster();
@@ -240,15 +292,7 @@ int main(int argc, char* argv[]) {
         graphics.presentScene();  
     }
 
-    for (auto& o : obj) delete o; obj.clear();
-
-    for (auto& m : mons) delete m; mons.clear();
-
-    delete dunn; dunn = nullptr;
-
-    delete ronaldo; ronaldo = nullptr;
-    
-    delete ball; ball = nullptr;
+    cleanUp(dunn, ronaldo, ball);
 
     graphics.quit();
     return 0;
