@@ -5,7 +5,7 @@
 #include "MainCharacter.h"
 #include "graphics.h"
 #include "Monster.h"
-
+#include "MonsBall.h"
 #include <vector>
 #include <cmath>
 
@@ -17,6 +17,7 @@ SDL_Texture* background;
 bool running = true;
 bool moving_left = false, moving_right = false, jumping = false,
      lastMovingLeft = false, lastMovingRight = false;
+bool GameOver = false;
 Uint32 lastMoveTime = SDL_GetTicks();
 
     MainCharacter* dunn;
@@ -25,6 +26,7 @@ Uint32 lastMoveTime = SDL_GetTicks();
 
     vector<GameObject*> obj;
     vector<Monster* > mons;
+    vector<MonsBall* > monsball;
 
     template <typename T>
 
@@ -40,13 +42,13 @@ void freeVector(vector<T*>& vec) {
 void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball, Monster* bat ) {
     freeVector(obj);
     freeVector(mons);
+    freeVector(monsball);
 
     for (auto& texture : dunn->framesLeft) SDL_DestroyTexture(texture);
     dunn->framesLeft.clear();
 
     for (auto& texture : dunn->framesRight) SDL_DestroyTexture(texture);
     dunn->framesRight.clear();
-
 
     for (auto& texture : bat->frames) SDL_DestroyTexture(texture);
     bat->frames.clear();
@@ -247,6 +249,46 @@ void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
             }
    }
 
+void CreateMonsBall( vector <Monster* > mons, int &current_distance)
+  {
+        current_distance += 5; 
+        for (auto &it : mons)
+          {
+              if (current_distance >= it->distance_change)
+                  {
+                          current_distance = 0;
+                          it->distance_change = ( rand() % 50 ) + 100;
+                          MonsBall* bon = new MonsBall ("media/monsball.png", graphics, it->x , it->y);
+                          monsball.push_back(bon);
+                  }
+          }
+    }
+
+    void UpdateMonsBall(MainCharacter* dunn, vector<MonsBall*>& monsball) {
+        for (auto it = monsball.begin(); it != monsball.end();) {
+            (*it)->update();
+            bool eraseball = false;
+    
+            if ((*it)->x - dunn->x >= 0 && (*it)->x - dunn->x <= 50 && (*it)->y - dunn->y >= 0 && (*it)->y - dunn->y <= 80)
+              {
+                GameOver = true;
+                delete *it;
+                it = monsball.erase(it);
+                eraseball = true;
+                break;
+            }
+    
+            if ((*it)->reachedTarget) {
+                delete *it;
+                it = monsball.erase(it);
+                eraseball = true;
+            } else {
+                ++it;
+            }
+        }
+    }
+    
+  
 
 
    // Main function
@@ -267,22 +309,23 @@ int main(int argc, char* argv[]) {
 
     ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
     ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
+    // Các biến để thay đổi frames của Monster
     int framesMons = 0, distance = 0;
     int FRAME_CHANGE_DISTANCE_MONS = 40;
-
+    
+    // Biến để Monster thả ball
+    int current_distance = 0;
+    
+    
     int width = 50;
     while (running) {
         Moving(); bool change = false;
         changeMap( dunn, ronaldo, change);
         if (change == true)
             {
-                // if (graphics.background) {
-                //     SDL_DestroyTexture(graphics.background);
-                //     graphics.background = nullptr;
-                // }
                 int map = ( rand() % 7 );
                 graphics.background = dunn ->Maps[map];
-                freeVector(obj); freeVector(mons);
+                freeVector(obj); freeVector(mons); freeVector(monsball);
                 graphics.prepareScene(graphics.background);
             }
         
@@ -290,9 +333,18 @@ int main(int argc, char* argv[]) {
             while ( mons.size() <= 3) {
                 FirstMonster();
             }
-
-
+        
         UpdateMonster();
+
+        CreateMonsBall(mons, current_distance);
+
+        UpdateMonsBall(dunn, monsball);
+
+        if (GameOver)
+          {
+             running = false;
+             cout << "Touching ball";
+          }
 
         HandleCharacterMovement(dunn, moving_left, moving_right, lastMovingLeft, lastMovingRight, width);
         
@@ -310,6 +362,11 @@ int main(int argc, char* argv[]) {
         for (auto& ball : obj) {
             graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
         }
+
+        for (auto& bon : monsball) {
+            graphics.renderTexture(bon->texture, bon->x, bon->y, 20 , 20);
+        }
+
         graphics.presentScene();  
     }
 
