@@ -8,6 +8,7 @@
 #include "MonsBall.h"
 #include <vector>
 #include <cmath>
+#include "menu.h"
 
 using namespace std;
 
@@ -23,6 +24,7 @@ Uint32 lastMoveTime = SDL_GetTicks();
     MainCharacter* dunn;
     MainCharacter* ronaldo;
     GameObject* ball;
+    Monster* bat;
 
     vector<GameObject*> obj;
     vector<Monster* > mons;
@@ -175,7 +177,6 @@ void HandleCharacterMovement(MainCharacter* dunn, bool moving_left, bool moving_
     
 }
 
-
 void FirstMonster()
    {
         int randomX = rand() % SCREEN_WIDTH - 100;
@@ -229,7 +230,6 @@ void UpdateMonster()
     
    }
 
-
 void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
    {
         if ( dunn->overMapLeft ) 
@@ -264,7 +264,7 @@ void CreateMonsBall( vector <Monster* > mons, int &current_distance)
           }
     }
 
-    void UpdateMonsBall(MainCharacter* dunn, vector<MonsBall*>& monsball) {
+void UpdateMonsBall(MainCharacter* dunn, vector<MonsBall*>& monsball) {
         for (auto it = monsball.begin(); it != monsball.end();) {
             (*it)->update();
             bool eraseball = false;
@@ -288,91 +288,188 @@ void CreateMonsBall( vector <Monster* > mons, int &current_distance)
         }
     }
     
-  
-
 
    // Main function
 int main(int argc, char* argv[]) {
     graphics.init();
-
-    SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
-    graphics.background = background;
+    Menu* menu = new Menu("media/menu.png", graphics);
+    
+    while (running && menu->inMenu)
+    {
+        graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+        graphics.presentScene();
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT) { running = false; break; }
+            else if (event.type == SDL_MOUSEBUTTONDOWN && !menu->selectingPlayer)
+             {
+                int mouseX, mouseY;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                menu->handleMenuClick(mouseX, mouseY);
+                // if (menu->selectingPlayer) break;
+             }
+            if (menu->selectingPlayer) 
+             {
+                menu->texture = graphics.loadTexture("media/player.jpg", graphics.renderer);
+                graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                graphics.presentScene();
+                
+                // Cập nhật lại tọa độ chuột
+                bool waitingForPlayerSelect = true;
+                while (waitingForPlayerSelect)
+                 {
+                    while (SDL_PollEvent(&event))
+                     {
+                        if (event.type == SDL_MOUSEBUTTONDOWN)
+                         {
+                            SDL_GetMouseState(&mouseX, &mouseY);
+                            menu->handlePlayerSelectClick(mouseX, mouseY);
+                            waitingForPlayerSelect = false;
+                        }
+                    }
+                }
+             }
+            
+        }
+    }
+    
 
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
     dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
     dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
     dunn ->loadMaps( {"media/background.jpg","media/background2.jpg", "media/background3.jpg", "media/background4.jpg", "media/background5.jpg", "media/background6.jpg", "media/background7.jpg"});
-    
+
     Monster* bat = new Monster("media/obj1.png", graphics, 100, 100);
-    bat ->loadFrame( { "media/obj1.png", "media/obj2.png", "media/obj3.png" } );
+     bat ->loadFrame( { "media/obj1.png", "media/obj2.png", "media/obj3.png" } );
     printf("Monster frames loaded: %lu\n", bat->frames.size());
 
-    ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
+    if ( menu->ronaldo == true) ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
+    else ronaldo = new MainCharacter("media/messi.png", graphics, 200, GROUND_LEVEL); 
     ball = new GameObject("media/ball.png", graphics, 150, GROUND_LEVEL);
-    // Các biến để thay đổi frames của Monster
-    int framesMons = 0, distance = 0;
-    int FRAME_CHANGE_DISTANCE_MONS = 40;
+
+
+    if ( !menu -> inMenu) 
+    {
+        SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
+        graphics.background = background;
+        
+        
+
+        // Các biến để thay đổi frames của Monster
+        int framesMons = 0, distance = 0;
+        int FRAME_CHANGE_DISTANCE_MONS = 40;
     
-    // Biến để Monster thả ball
-    int current_distance = 0;
+        // Biến để Monster thả ball
+        int current_distance = 0;
     
-    
-    int width = 50;
-    while (running) {
-        Moving(); bool change = false;
-        changeMap( dunn, ronaldo, change);
-        if (change == true)
+        int width = 50;
+        while (running)
             {
-                int map = ( rand() % 7 );
-                graphics.background = dunn ->Maps[map];
-                freeVector(obj); freeVector(mons); freeVector(monsball);
-                graphics.prepareScene(graphics.background);
+                Moving(); bool change = false;
+                changeMap( dunn, ronaldo, change);
+                if (change == true)
+                    {
+                        int map = ( rand() % 7 );
+                        graphics.background = dunn ->Maps[map];
+                        freeVector(obj); freeVector(mons); freeVector(monsball);
+                        graphics.prepareScene(graphics.background);
+                    }
+        
+                UpdateBalls();
+                while ( mons.size() <= 3) { FirstMonster(); }
+        
+                UpdateMonster();
+
+                CreateMonsBall(mons, current_distance);
+
+                UpdateMonsBall(dunn, monsball);
+
+                if (GameOver)
+                {
+
+                    // vẽ gameover
+                    menu->texture = graphics.loadTexture("media/gameover.png", graphics.renderer);
+                    graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                    graphics.presentScene();
+                    
+                    // chờ cho chọn nhân vật hoặc chơi game mới
+                    bool waitingForInput = true;
+                    while (waitingForInput)
+                    {
+                        // cho nhân vật dừng
+                        moving_left = moving_right = jumping = false;
+                        lastMovingLeft = lastMovingRight = false;
+
+
+                        while (SDL_PollEvent(&event))
+                            {
+                                if (event.type == SDL_QUIT) { running = false; waitingForInput = false; break; }
+                                else if (event.type == SDL_MOUSEBUTTONDOWN && !menu->selectingPlayer)
+                                        {
+                                                int mouseX, mouseY;
+                                                SDL_GetMouseState(&mouseX, &mouseY);
+                                                menu->handleContinuePlay(mouseX, mouseY);
+                                                // if (menu->selectingPlayer) break;
+                                         }
+                            }
+                        if (menu->selectingPlayer) 
+                                {
+                                    menu->texture = graphics.loadTexture("media/player.jpg", graphics.renderer);
+                                    graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+                                    graphics.presentScene();
+                
+                                        // Cập nhật lại tọa độ chuột
+                                    bool waitingForPlayerSelect = true;
+                                    while (waitingForPlayerSelect)
+                                        {
+                                            while (SDL_PollEvent(&event))
+                                                {
+                                                    if (event.type == SDL_MOUSEBUTTONDOWN)
+                                                        {
+                                                            SDL_GetMouseState(&mouseX, &mouseY);
+                                                            menu->handlePlayerSelectClick(mouseX, mouseY);
+                                                            waitingForPlayerSelect = false;
+                                                        }
+                                                    }
+                                        }
+                                    waitingForInput = false;
+                                    // đổi nhân vật
+                                    if ( menu->ronaldo == true) ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
+                                    else ronaldo = new MainCharacter("media/messi.png", graphics, 200, GROUND_LEVEL); 
+                                }
+                        else if (menu->inMenu) { waitingForInput = false; menu->inMenu = false;}
+                    }
+                   GameOver = false;
+                   freeVector(obj); freeVector(monsball); freeVector(mons);
+                   dunn->x = 100; dunn->y = GROUND_LEVEL; dunn->texture = dunn->framesRight[0];
+                   ronaldo->x = 200;
+                }
+
+                HandleCharacterMovement(dunn, moving_left, moving_right, lastMovingLeft, lastMovingRight, width);
+        
+
+                for (auto& mon : mons)
+                    {
+                        distance += 2;
+                        if (distance >= FRAME_CHANGE_DISTANCE_MONS) { framesMons = (framesMons + 1) % 3; distance = 0; }
+        
+                        // Kiểm tra tránh crash
+                        if (!bat->frames.size()) { mon->texture = bat->frames[framesMons]; }
+                        graphics.renderTexture(bat ->frames[framesMons], mon->x, mon->y, 40, 40);
+                    }
+
+                for (auto& ball : obj) {
+                        graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
+                    }
+
+                for (auto& bon : monsball) {
+                        graphics.renderTexture(bon->texture, bon->x, bon->y, 20 , 20);
+                    }
+
+                graphics.presentScene();  
             }
-        
-            UpdateBalls();
-            while ( mons.size() <= 3) {
-                FirstMonster();
-            }
-        
-        UpdateMonster();
-
-        CreateMonsBall(mons, current_distance);
-
-        UpdateMonsBall(dunn, monsball);
-
-        if (GameOver)
-          {
-             running = false;
-             cout << "Touching ball";
-          }
-
-        HandleCharacterMovement(dunn, moving_left, moving_right, lastMovingLeft, lastMovingRight, width);
-        
-
-        for (auto& mon : mons)
-        {
-            distance += 2;
-            if (distance >= FRAME_CHANGE_DISTANCE_MONS) { framesMons = (framesMons + 1) % 3; distance = 0; }
-        
-            // Kiểm tra tránh crash
-            if (!bat->frames.size()) { mon->texture = bat->frames[framesMons]; }
-            graphics.renderTexture(bat ->frames[framesMons], mon->x, mon->y, 40, 40);
-        }
-
-        for (auto& ball : obj) {
-            graphics.renderTexture(ball->texture, ball->x, ball->y, 20 , 20);
-        }
-
-        for (auto& bon : monsball) {
-            graphics.renderTexture(bon->texture, bon->x, bon->y, 20 , 20);
-        }
-
-        graphics.presentScene();  
     }
-
     cleanUp(dunn, ronaldo, ball, bat);
-
     graphics.quit();
     return 0;
 }
-
