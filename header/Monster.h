@@ -17,6 +17,8 @@ class Monster {
         int targetX;
         int speedX = 2;
         bool reachedTarget = false;
+        int distance_change = (rand() % 50) + 50 ; // dành cho việc tạo ball
+
         SDL_Texture* texture;
         Graphics& graphicsRef;
         std::vector < SDL_Texture* > frames;

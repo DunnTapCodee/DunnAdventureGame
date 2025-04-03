@@ -23,6 +23,7 @@ class MainCharacter
     std::vector < SDL_Texture* > framesRight;
     std::vector < SDL_Texture* > framesLeft;
     std::vector < SDL_Texture* > Maps;
+    std::vector < SDL_Texture* > Scores;
 
     MainCharacter (const char* filePath, Graphics& graphics, int startX, int startY)
      : x(startX), y(startY), is_jumping (false),  graphicsRef(graphics)
@@ -54,6 +55,15 @@ class MainCharacter
                  {
                      SDL_Texture* texture = graphicsRef.loadTexture( path, graphicsRef.renderer);
                      if (texture) Maps.push_back(texture);
+                 }
+        }
+
+    void loadScores( std::vector <const char*> filePaths)
+        {
+              for (const char* path : filePaths)
+                 {
+                     SDL_Texture* texture = graphicsRef.loadTexture( path, graphicsRef.renderer);
+                     if (texture) Scores.push_back(texture);
                  }
         }
 
@@ -104,7 +114,7 @@ class MainCharacter
    void move_left()
      {
         x = x - MOVE_SPEED;
-        if (x <= 50) {
+        if (x <= 5) {
             overMapLeft = true;
         }
      }
@@ -121,9 +131,12 @@ class MainCharacter
 
 
     
-//    void render(Graphics& graphics) {
-//       graphics.renderTexture(texture, x, y, 120, 120);
-//   }
+     void resetPosition() {
+        x = 100;
+        y = GROUND_LEVEL - 10;
+        current_speed = 0;
+        is_jumping = false;
+    }
     
 };
 

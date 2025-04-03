@@ -6,9 +6,12 @@
 #include "graphics.h"
 #include "Monster.h"
 #include "MonsBall.h"
+#include "menu.h"
+
 #include <vector>
 #include <cmath>
-#include "menu.h"
+#include <string>
+#include <fstream>
 
 using namespace std;
 
@@ -17,6 +20,18 @@ SDL_Event event;
 SDL_Texture* background;
 SDL_Texture* current_score = nullptr;
 SDL_Texture* high_score = nullptr;
+
+    Mix_Music *intro;
+    Mix_Music *ingame;
+    Mix_Chunk* moving;
+    Mix_Chunk* hit;
+    Mix_Chunk* shootingball;
+    Mix_Chunk* jump;
+    Mix_Chunk* gameover;
+    Mix_Chunk* touch;
+    Mix_Chunk* click;
+
+    Menu* menu = new Menu("media/menu.png", graphics);
 bool running = true;
 bool moving_left = false, moving_right = false, jumping = false,
      lastMovingLeft = false, lastMovingRight = false;
@@ -43,6 +58,18 @@ void freeVector(vector<T*>& vec) {
     vec.clear();
 }
 
+void freeAudioResources() {
+    if (intro) { Mix_FreeMusic(intro); intro = nullptr; }
+    if (ingame) { Mix_FreeMusic(ingame);ingame = nullptr;}
+    if (moving) {Mix_FreeChunk(moving);moving = nullptr;}
+    if (hit) {Mix_FreeChunk(hit);hit = nullptr; }
+    if (shootingball) {Mix_FreeChunk(shootingball); shootingball = nullptr;}
+    if (jump) {Mix_FreeChunk(jump);jump = nullptr;}
+    if (touch) { Mix_FreeChunk(touch); touch = nullptr;}
+    if (click) { Mix_FreeChunk(click); click = nullptr;}
+    if (gameover) { Mix_FreeChunk(gameover); gameover = nullptr;}
+}
+
 void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball, Monster* bat ) {
     freeVector(obj);
     freeVector(mons);
@@ -60,7 +87,6 @@ void cleanUp(MainCharacter* dunn, MainCharacter* ronaldo, GameObject* ball, Mons
     delete dunn; dunn = nullptr;
     delete ronaldo; ronaldo = nullptr;
     delete ball; ball = nullptr;
-
 }
 
 
@@ -76,6 +102,7 @@ void ShootingBall(SDL_Event& event) {
 
     if (ball_shot)
         {
+            graphics.play(shootingball);
             // Xuất phát từ vị trí của kanie
             GameObject* newBall = new GameObject("media/ball.png", graphics, ronaldo->x + 60 , ronaldo->y + 100);
         
@@ -105,7 +132,7 @@ void Moving() {
                 switch (event.key.keysym.sym) {
                     case SDLK_a: moving_left = true;  break;
                     case SDLK_d: moving_right = true; break;
-                    case SDLK_SPACE: jumping = true; break;
+                    case SDLK_SPACE: jumping = true; graphics.play(jump); break;
                     default: break;
                 }
             } else if (event.type == SDL_KEYUP) {
@@ -120,7 +147,7 @@ void Moving() {
     }
 
     if (moving_left)  { dunn->move_left(); ronaldo->move_left(); }
-    if (moving_right) { dunn->move_right(); ronaldo->move_right(); }
+    if (moving_right) { dunn->move_right(); ronaldo->move_right();}
     if (jumping && dunn->is_touching_ground()) {
         dunn->jump(JUMP_SPEED);
     }
@@ -155,6 +182,7 @@ void HandleCharacterMovement(MainCharacter* dunn, bool moving_left, bool moving_
         if (distance_moved >= FRAME_CHANGE_DISTANCE) {
             frames = (frames + 1) % 4;
             distance_moved = 0;
+            if ( dunn-> is_touching_ground()) graphics.play(moving);
         }
     }
 
@@ -200,6 +228,8 @@ void UpdateMonster()
         bool erased = false;
         if ( abs( dunn->x - (*it)->x ) <= 40  && abs( dunn->y - (*it)->y ) <= 40 )
            {
+                graphics.play(touch);
+                score += 5;
                 delete *it;
                 it = mons.erase(it);
                 erased = true;
@@ -209,6 +239,8 @@ void UpdateMonster()
         {
             if ( abs((*itr)->x - (*it)->x ) <= 20  && abs((*itr)->y - (*it)->y ) <= 20 )
             {
+                graphics.play(hit);
+                score += 2;
                 delete *itr;
                 itr = obj.erase(itr);
     
@@ -235,7 +267,7 @@ void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
                 dunn -> x = SCREEN_WIDTH - 50 ;
                 ronaldo -> x = SCREEN_WIDTH + 50;
                 dunn -> overMapLeft = false;
-                change = true;
+                change = true; score -= 8;
 
            }
         else if ( dunn->overMapRight ) 
@@ -243,7 +275,7 @@ void changeMap( MainCharacter* dunn, MainCharacter* ronaldo, bool &change )
                 dunn -> x = 0;
                 ronaldo -> x = 100;
                 dunn -> overMapRight = false;
-                change = true;
+                change = true; score -=8;
             }
    }
 
@@ -286,10 +318,14 @@ void UpdateMonsBall(MainCharacter* dunn, vector<MonsBall*>& monsball) {
         }
     }
     
-void StartGame(Menu* menu)
+void StartGame(Menu* menu, Mix_Music* intro)
   {
     while (running && menu->inMenu)
     {
+        // running intro music
+        const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+        if (currentKeyStates[SDL_SCANCODE_UP]) graphics.play(intro);
+
         graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
         graphics.presentScene();
         while (SDL_PollEvent(&event))
@@ -300,6 +336,7 @@ void StartGame(Menu* menu)
                 int mouseX, mouseY;
                 SDL_GetMouseState(&mouseX, &mouseY);
                 menu->handleMenuClick(mouseX, mouseY);
+                graphics.play(click);
                 // if (menu->selectingPlayer) break;
              }
             if (menu->selectingPlayer) 
@@ -316,6 +353,7 @@ void StartGame(Menu* menu)
                      {
                         if (event.type == SDL_MOUSEBUTTONDOWN)
                          {
+                            graphics.play(click);
                             SDL_GetMouseState(&mouseX, &mouseY);
                             menu->handlePlayerSelectClick(mouseX, mouseY);
                             waitingForPlayerSelect = false;
@@ -326,11 +364,13 @@ void StartGame(Menu* menu)
             
         }
     }
+    Mix_FreeMusic(intro);
     
   }
 
 void GameOverr(Menu* menu, MainCharacter* dunn, MainCharacter* ronaldo, bool &GameOver)
   {
+    score = 0;
     // vẽ gameover
     menu->texture = graphics.loadTexture("media/gameover.png", graphics.renderer);
     graphics.renderTexture(menu->texture, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -350,6 +390,7 @@ void GameOverr(Menu* menu, MainCharacter* dunn, MainCharacter* ronaldo, bool &Ga
                 if (event.type == SDL_QUIT) { running = false; waitingForInput = false; break; }
                 else if (event.type == SDL_MOUSEBUTTONDOWN && !menu->selectingPlayer)
                         {
+                                graphics.play(click);
                                 int mouseX, mouseY;
                                 SDL_GetMouseState(&mouseX, &mouseY);
                                 menu->handleContinuePlay(mouseX, mouseY);
@@ -370,6 +411,7 @@ void GameOverr(Menu* menu, MainCharacter* dunn, MainCharacter* ronaldo, bool &Ga
                                 {
                                     if (event.type == SDL_MOUSEBUTTONDOWN)
                                         {
+                                            graphics.play(click);
                                             SDL_GetMouseState(&mouseX, &mouseY);
                                             menu->handlePlayerSelectClick(mouseX, mouseY);
                                             waitingForPlayerSelect = false;
@@ -410,6 +452,28 @@ void RenderObject(Monster* bat, vector<Monster* > mons, vector <GameObject* > ob
         }
  }
 
+int loadHighScore(const string&filename)
+   {
+        ifstream file(filename);
+        int highscore = 0;
+        if (file.is_open())
+          {
+                file >> highscore;
+                file.close();
+          }
+        return highscore;
+   }
+
+void saveHighScore(const string& filenmae, int &score)
+   {
+        ofstream file ("cpp/highscore.txt");
+        if (file.is_open())
+            {
+                file << score;
+                file.close();
+            }
+   }
+
 void LoadScoreTextures()
  {
      current_score = graphics.loadTexture("media/score.png", graphics.renderer);
@@ -418,29 +482,62 @@ void LoadScoreTextures()
  
 void RenderScore()
  {
+     int highscore = loadHighScore("cpp/highscore.txt");
+     if (score > highscore) { saveHighScore( "cpp/highscore.txt", score); highscore = score;}
      graphics.renderTexture(current_score, 30, 20, 320, 27);
      graphics.renderTexture(high_score, 450, 20, 320, 27);
+     string readScores = to_string(score);int space = 0;
+     while (!readScores.empty() )
+       {
+            int number = readScores[0] - '0';
+            graphics.renderTexture(dunn->Scores[number], 220 + space, 23, 22, 22);
+            space += 22;
+            readScores.erase(0, 1); 
+       }
+    string readsHighScores = to_string(highscore);space = 0;
+    while (!readsHighScores.empty() )
+        {
+            int number = readsHighScores[0] - '0';
+            graphics.renderTexture(dunn->Scores[number], 640 + space, 23, 22, 22);
+            space += 22;
+            readsHighScores.erase(0, 1); 
+        }
+    
  }
- 
+
 void CleanupScoreTextures()
  {
      SDL_DestroyTexture(current_score); current_score = nullptr;
      SDL_DestroyTexture(high_score); high_score = nullptr;
+     for (auto& texture : dunn->Scores) SDL_DestroyTexture(texture);
+     dunn->Scores.clear();
  }
  
   // Main function
 int main(int argc, char* argv[]) {
     graphics.init();
+
+    intro = graphics.loadMusic("media/intro.mp3");
+    ingame = graphics.loadMusic("media/ingame.mp3");
+    moving = graphics.loadSound("media/moving.wav");
+    jump = graphics.loadSound("media/jump.wav");
+    shootingball = graphics.loadSound("media/shootingball.wav");
+    hit = graphics.loadSound("media/hit.wav");
+    touch = graphics.loadSound("media/touch.wav");
+    click = graphics.loadSound("media/click.wav");
+    gameover = graphics.loadSound("media/gameover.wav");
     Menu* menu = new Menu("media/menu.png", graphics);
     
-    StartGame(menu); // Menu Game
+    StartGame(menu, intro); // Menu Game
     
     dunn = new MainCharacter("media/dunn.png", graphics, 100, GROUND_LEVEL);
     dunn-> loadFrameLeft( { "media/dunnleft.png", "media/dunn2left.png", "media/dunn3left.png", "media/dunn2left.png", "media/dunn2jump.png"} );
     dunn-> loadFrameRight( {"media/dunn.png", "media/dunn2.png", "media/dunn3.png", "media/dunn2.png", "media/dunnjump.png"} );
     dunn ->loadMaps( {"media/background.jpg","media/background2.jpg", "media/background3.jpg", "media/background4.jpg", "media/background5.jpg", "media/background6.jpg", "media/background7.jpg"});
-
+    dunn ->loadScores({"media/0.png", "media/1.png", "media/2.png", "media/3.png", "media/4.png", "media/5.png","media/6.png", "media/7.png", "media/8.png", "media/9.png"});
     LoadScoreTextures();
+
+    
 
     Monster* bat = new Monster("media/obj1.png", graphics, 100, 100);
      bat ->loadFrame( { "media/obj1.png", "media/obj2.png", "media/obj3.png" } );
@@ -454,11 +551,12 @@ int main(int argc, char* argv[]) {
     if ( !menu -> inMenu) 
     {
         SDL_Texture* background = graphics.loadTexture("media/background.jpg", graphics.renderer);
-        graphics.background = background;
+        graphics.background = background; graphics.play(ingame);
 
         // Các biến để thay đổi frames của Monster
         int framesMons = 0, distance = 0, FRAME_CHANGE_DISTANCE_MONS = 40;// Biến để Monster thả ball
         int current_distance = 0;/*Biến để Monster thả ball*/ int width = 50;
+
         while (running)
             {
                 graphics.presentScene();
@@ -482,8 +580,10 @@ int main(int argc, char* argv[]) {
 
                 UpdateMonsBall(dunn, monsball);
 
+                if (score < 0) GameOver = true;
                 if (GameOver)
                 {
+                        graphics.play(gameover);
                         GameOverr(menu, dunn, ronaldo, GameOver);
                         if ( menu->ronaldo == true) ronaldo = new MainCharacter("media/ronaldo.png", graphics, 200, GROUND_LEVEL); 
                             else ronaldo = new MainCharacter("media/messi.png", graphics, 200, GROUND_LEVEL); 
@@ -493,11 +593,12 @@ int main(int argc, char* argv[]) {
         
                 RenderObject(bat, mons, obj, monsball, distance, FRAME_CHANGE_DISTANCE_MONS, framesMons);
 
-                RenderScore();
+                RenderScore(); 
                 int used_time = clock() - start; SDL_Delay(used_time > 16 ? 0 : 16 - used_time);
             }
     }
     cleanUp(dunn, ronaldo, ball, bat);CleanupScoreTextures();
+    
     graphics.quit();
     return 0;
 }

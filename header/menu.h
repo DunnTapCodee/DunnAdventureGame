@@ -36,12 +36,13 @@ public:
     }
 
     void handleContinuePlay(int x, int y) {
-        if (x >= 50 && x <= 250 && y >= 450 && y <= 550) {
+        if (x >= 50 && x <= 300 && y >= 450 && y <= 550) {
             inMenu = true;
-        } else if (x >= 450 && x <= 650 && y >= 450 && y <= 550) {
+        } else if (x >= 500 && x <= 750 && y >= 450 && y <= 550) {
             selectingPlayer = true;
         }
     }
+
 };
 
 #endif
