@@ -10,6 +10,8 @@ public:
     bool inMenu = true;
     bool selectingPlayer = false;
     bool ronaldo = true;
+    bool continueGame = false; 
+    bool exitGame = false; 
     SDL_Texture* texture;
 
     Menu(const char* filePath, Graphics& graphics) {
@@ -42,6 +44,11 @@ public:
             selectingPlayer = true;
         }
     }
+    void Continue(int x, int y)
+       {
+         if (x >= 100 && x <= 300 && y >=400 && y <= 460) continueGame = true ;
+         else if (x >= 500 && x <= 700 && y >=400 && y <= 460) exitGame = true;
+       }
 
 };
 
