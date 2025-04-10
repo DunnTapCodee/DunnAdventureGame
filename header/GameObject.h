@@ -11,6 +11,7 @@
 
 class GameObject {
     public:
+        int through = THROUGH;
         float x, y;
         float targetX, targetY;
         float speedX, speedY;
